@@ -1,0 +1,30 @@
+name: Publicar SimOli en Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Aviso si falta conectar Cloudflare
+        if: ${{ env.CF_TOKEN == '' || env.CF_ACCOUNT == '' }}
+        run: echo "::warning::Aun falta configurar CLOUDFLARE_API_TOKEN y CLOUDFLARE_ACCOUNT_ID en Settings > Secrets and variables > Actions. No se publica."
+      - name: Publicar en Pages
+        if: ${{ env.CF_TOKEN != '' && env.CF_ACCOUNT != '' }}
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy public --project-name=libreriayregaleria-simoly --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
