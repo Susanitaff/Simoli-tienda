@@ -1,5 +1,6 @@
 -- Cargar UNA sola vez, tras ejecutar setup.sql. No pisa modificaciones existentes.
 -- Incluye los 65 códigos originales con estado de empaque y 5% ya aplicado cuando corresponde.
+-- Los productos sin precio o stock confirmado quedan ocultos hasta verificarlos desde el panel.
 insert into public.simoli_products(id,name,brand,category,price,stock,condition,published)
 values
 ('SIM-LIB-001','Filgo Gel Pop Beach x12','Filgo','Lapiceras gel',10500,1,'normal',true),
@@ -8,7 +9,7 @@ values
 ('SIM-LIB-004','Filgo Pinto Jumbo x6','Filgo','Fibras y marcadores',4200,1,'normal',true),
 ('SIM-LIB-005','Filgo Gel Pop Explore x12','Filgo','Lapiceras gel',9500,3,'normal',true),
 ('SIM-LIB-006','Maped Glitter Pastel x4','Maped','Resaltadores',12900,1,'normal',true),
-('SIM-LIB-007','Maped Color’Peps Window x6','Maped','Fibras y marcadores',11900,NULL,'normal',true),
+('SIM-LIB-007','Maped Color’Peps Window x6','Maped','Fibras y marcadores',11900,NULL ,'normal',false),
 ('SIM-LIB-008','Pizzini Mío Maxi x6','Pizzini','Fibras y marcadores',5900,1,'normal',true),
 ('SIM-LIB-009','Filgo Gel Pop Pastel x6','Filgo','Lapiceras gel',5100,2,'normal',true),
 ('SIM-LIB-010','Filgo Pinto Jumbo Pastel x6','Filgo','Fibras y marcadores',4300,1,'normal',true),
@@ -31,8 +32,8 @@ values
 ('SIM-LIB-023','Filgo Pinto 2220 Flúo x6','Filgo','Fibras y marcadores',2900,1,'normal',true),
 ('SIM-LIB-024-D','Filgo Gel Pop Glitter x10 · caja · empaque con detalles','Filgo','Lapiceras gel',9405,1,'detail',true),
 ('SIM-LIB-025','Filgo Gel Pop Surtidos x10 · caja','Filgo','Lapiceras gel',9500,2,'normal',true),
-('SIM-LIB-026','Maped Color’Peps Duo Tip x10','Maped','Fibras y marcadores',11800,NULL,'normal',true),
-('SIM-LIB-027','Maped Color’Peps Glitter (presentación por comprobar)','Maped','Fibras y marcadores',NULL,2,'normal',true),
+('SIM-LIB-026','Maped Color’Peps Duo Tip x10','Maped','Fibras y marcadores',11800,NULL ,'normal',false),
+('SIM-LIB-027','Maped Color’Peps Glitter (presentación por comprobar)','Maped','Fibras y marcadores',NULL,2 ,'normal',false),
 ('SIM-LIB-028','Giotto Turbo Color x20','Giotto','Fibras y marcadores',7900,1,'normal',true),
 ('SIM-LIB-029-D','Filgo Gel Pop Roller Gel x10 · variante a identificar · empaque con detalles','Filgo','Lapiceras gel',8455,1,'detail',true),
 ('SIM-LIB-030','Mooving Fiesta de Pasteles x8','Mooving','Resaltadores',12900,3,'normal',true),
@@ -65,6 +66,6 @@ values
 ('SIM-LIB-054','Pizzini Urban Permanente x6 · Siempre Naturaleza','Pizzini','Fibras y marcadores',7900,1,'normal',true),
 ('SIM-LIB-055','Filgo Lighter Fine Pastel x18','Filgo','Resaltadores',14500,3,'normal',true),
 ('SIM-LIB-056','Filgo Text Marker Pastel x18','Filgo','Resaltadores',23500,1,'normal',true),
-('SIM-LIB-057','Olami marcadores doble punta MDP112 x12','Olami','Artística',7900,NULL,'normal',true),
-('SIM-LIB-058','Maped Nightfall flúo x4','Maped','Resaltadores',NULL,NULL,'normal',true)
+('SIM-LIB-057','Olami marcadores doble punta MDP112 x12','Olami','Artística',7900,NULL ,'normal',false),
+('SIM-LIB-058','Maped Nightfall flúo x4','Maped','Resaltadores',NULL,NULL ,'normal',false)
 on conflict (id) do nothing;
