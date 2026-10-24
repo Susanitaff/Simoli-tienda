@@ -71,6 +71,7 @@ const old=records.find(p=>p.id===id);if(!activeId&&old)throw Error('Ya existe es
 const p={id,name:field('name'),brand:field('brand'),category:field('category')||'Papelería',description:field('description'),condition:field('condition'),
 price:field('price')===''?null:Number(field('price')),stock:field('stock')===''?null:Number(field('stock')),published:$('published').checked,image_url:old?.image_url||null,updated_at:new Date().toISOString()};
 if(!p.name||p.price!==null&&(!Number.isFinite(p.price)||p.price<0)||p.stock!==null&&(!Number.isInteger(p.stock)||p.stock<0))throw Error('Revisá nombre, precio y stock.');
+if(p.published&&(p.price===null||p.stock===null))throw Error('Para publicar, completá el precio y el stock confirmado. Si faltan, dejá el producto oculto.');
 const photo=$('photo').files[0];if(photo){if(!['image/jpeg','image/png','image/webp'].includes(photo.type)||photo.size>6291456)throw Error('Foto JPG, PNG o WEBP de hasta 6 MB.');
 const ext=photo.type.split('/')[1].replace('jpeg','jpg');const key=id+'/'+Date.now()+'-'+crypto.randomUUID()+'.'+ext;
 const u=await client.storage.from('simoli-productos').upload(key,photo,{upsert:false,contentType:photo.type});if(u.error)throw u.error;
