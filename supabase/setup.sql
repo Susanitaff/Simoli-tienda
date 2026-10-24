@@ -16,6 +16,7 @@ create table if not exists public.simoli_products (
   condition text not null default 'normal' check(condition in ('normal','detail','open')),
   image_url text,
   published boolean not null default false,
+  constraint simoli_publish_requires_price_and_stock check (not published or (price is not null and stock is not null)),
   updated_at timestamptz not null default now()
 );
 create index if not exists simoli_products_published_idx on public.simoli_products(published);
