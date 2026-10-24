@@ -40,3 +40,20 @@ A partir de ese momento cada actualización a `main` intentará publicarse autom
 
 ## Importante
 Los precios son **sugeridos** y algunos requieren reconfirmación frente al mercado.
+
+
+## Administración desde el celular (preparado, no activado)
+- Archivo del panel: `public/admin.html`.
+- Administradora: entra con correo y contraseña de **Supabase Auth**, luego se confirma autorización en `simoli_admins` mediante Row Level Security (RLS).
+- Operaciones: alta/edición, foto real, precio, stock, ocultar/publicar y estados de empaque.
+- **Aún falta enlazar Supabase**. La web seguirá en modo demostración hasta entonces. El panel no está listo para iniciar sesión todavía.
+- Scripts: ejecutar primero `supabase/setup.sql` y después `supabase/seed.sql` (65 presentaciones; no sobrescribe productos).
+- Crear la usuaria solo desde Supabase Authentication (registro público deshabilitado), autorizar su UUID con el `INSERT` indicado al final de `setup.sql`.
+- Configurar ÚNICAMENTE la URL y la **publishable key pública** en `public/simoli-config.js`. Estas son credenciales públicas limitadas por RLS. **Nunca** colocar secret key, service role ni contraseñas en GitHub.
+- El código de la tienda leerá el stock y los productos publicados desde Supabase una vez hechos esos pasos. Mientras no esté configurado, conserva la vista de demostración original.
+- Publicar en Cloudflare después de revisar el resultado. La tienda sigue sin pagos reales.
+
+## Seguridad y pendientes
+- El repositorio figura actualmente **público**, aunque se había pensado hacerlo privado. Si se prefiere privado, cambiarlo desde GitHub → Settings → General → Danger Zone → Change visibility.
+- No almacenar tokens, contraseñas ni información de clientes en el código o CSV.
+- El panel modifica catálogo, **no** registra ventas reales ni descuenta stock por cobros. Para activar pagos faltan backend, webhooks y validación del stock, además de configurar Mercado Pago en modo prueba.
