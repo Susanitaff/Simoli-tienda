@@ -49,11 +49,19 @@ Los precios son **sugeridos** y algunos requieren reconfirmación frente al merc
 - **Aún falta comprobar y completar el enlace a la base Supabase creada por la dueña.** La web seguirá en modo demostración hasta publicar los cambios. El panel necesita una cuenta autorizada para iniciar sesión.
 - **Migración principal:** `supabase/migrations/20261031090000_inicializar_simoli.sql` (tablas + políticas RLS + 65 presentaciones). Si se aplicó esta migración, **NO** ejecutar nuevamente `setup.sql`/`seed.sql` por separado.
 - Crear la usuaria solo desde Supabase Authentication (registro público deshabilitado), autorizar su UUID con el `INSERT` indicado al final de `setup.sql`.
-- Configurar ÚNICAMENTE la URL y la **publishable key pública** en `public/simoli-config.js`. Estas son credenciales públicas limitadas por RLS. **Nunca** colocar secret key, service role ni contraseñas en GitHub.
-- El código de la tienda leerá el stock y los productos publicados desde Supabase una vez hechos esos pasos. Mientras no esté configurado, conserva la vista de demostración original.
+- **Ya se configuraron** la URL y la **publishable key pública** en `public/simoli-config.js`. La clave pública no concede permisos de escritura sin autenticación y RLS. **Nunca** colocar secret key, service role ni contraseñas en GitHub.
+- Al publicar la versión nueva en Cloudflare, el catálogo leerá los productos publicados desde Supabase. En base hay 65 presentaciones; 60 están publicadas y 5 ocultas hasta confirmar precio o stock. Las fotos antiguas están embebidas en el HTML y permanecen visibles en sus tarjetas.
 - Publicar en Cloudflare después de revisar el resultado. La tienda sigue sin pagos reales.
 
 ## Seguridad y pendientes
 - El repositorio figura actualmente **público**, aunque se había pensado hacerlo privado. Si se prefiere privado, cambiarlo desde GitHub → Settings → General → Danger Zone → Change visibility.
 - No almacenar tokens, contraseñas ni información de clientes en el código o CSV.
 - El panel modifica catálogo, **no** registra ventas reales ni descuenta stock por cobros. Para activar pagos faltan backend, webhooks y validación del stock, además de configurar Mercado Pago en modo prueba.
+
+## Siguientes pasos para activar el panel (31-10-2026)
+1. En [Authentication → Users](https://supabase.com/dashboard/project/nrntxvxvfoawllpdwwdq/auth/users) crear un usuario administradora con **contraseña NUEVA y privada**. No reutilizar ni enviar por chat la contraseña de la base de datos. Preferir deshabilitar el registro público.
+2. Autorizar solo ese UUID insertándolo en `public.simoli_admins`. Debe hacerlo alguien con permisos administrativos de base de datos (se puede completar mediante ChatGPT con el plugin Supabase conectado tras confirmar que el usuario existe).
+3. Probar el acceso de administrador y la lectura pública bajo RLS. El catálogo público ya fue probado con rol anónimo: muestra solo 60 presentaciones.
+4. [Configurar GitHub Actions Secrets](https://github.com/Susanitaff/Simoli-tienda/settings/secrets/actions) para `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`. Sin ellos el workflow de GitHub finaliza con aviso pero **NO despliega**.
+5. Comprobar el resultado en el dominio de Cloudflare antes de recibir pedidos reales. Checkout de Mercado Pago **aún no está activo**.
+6. **Seguridad:** si la contraseña inicial de la base de datos apareció en una foto compartida, resetearla desde Supabase Database Settings. No guardar secretos en el repositorio.
