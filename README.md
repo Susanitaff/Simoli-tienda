@@ -1,6 +1,6 @@
 # SimOli 🌸 · Librería y Regalería
 
-Tienda y catálogo de demostración de **SimOli** (Villa Carlos Paz, Córdoba).
+> **Activación nueva (31/10/2026):** Ya se agregó una migración de esquema + stock inicial en `supabase/migrations/20261031090000_inicializar_simoli.sql`. Antes de hacer cambios en Supabase, seguí **[ACTIVACION_SIMOLI.md](ACTIVACION_SIMOLI.md)**. La base y la web pública deben verificarse; tener código en GitHub no implica que ya esté aplicado.\n\nTienda y catálogo de demostración de **SimOli** (Villa Carlos Paz, Córdoba).
 
 ## Estado actual
 - **Web pública actual:** https://libreriayregaleria-simoly.pages.dev
@@ -46,8 +46,8 @@ Los precios son **sugeridos** y algunos requieren reconfirmación frente al merc
 - Archivo del panel: `public/admin.html`.
 - Administradora: entra con correo y contraseña de **Supabase Auth**, luego se confirma autorización en `simoli_admins` mediante Row Level Security (RLS).
 - Operaciones: alta/edición, foto real, precio, stock, ocultar/publicar y estados de empaque.
-- **Aún falta enlazar Supabase**. La web seguirá en modo demostración hasta entonces. El panel no está listo para iniciar sesión todavía.
-- Scripts: ejecutar primero `supabase/setup.sql` y después `supabase/seed.sql` (65 presentaciones; no sobrescribe productos).
+- **Aún falta comprobar y completar el enlace a la base Supabase creada por la dueña.** La web seguirá en modo demostración hasta publicar los cambios. El panel necesita una cuenta autorizada para iniciar sesión.
+- **Migración principal:** `supabase/migrations/20261031090000_inicializar_simoli.sql` (tablas + políticas RLS + 65 presentaciones). Si se aplicó esta migración, **NO** ejecutar nuevamente `setup.sql`/`seed.sql` por separado.
 - Crear la usuaria solo desde Supabase Authentication (registro público deshabilitado), autorizar su UUID con el `INSERT` indicado al final de `setup.sql`.
 - Configurar ÚNICAMENTE la URL y la **publishable key pública** en `public/simoli-config.js`. Estas son credenciales públicas limitadas por RLS. **Nunca** colocar secret key, service role ni contraseñas en GitHub.
 - El código de la tienda leerá el stock y los productos publicados desde Supabase una vez hechos esos pasos. Mientras no esté configurado, conserva la vista de demostración original.
