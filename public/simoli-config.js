@@ -1,6 +1,6 @@
-// Configuración pública de Supabase (no poner service_role ni claves secretas).
-// Completar solo después de crear el proyecto y aplicar supabase/setup.sql.
+// SimOli: solo la clave pública de Supabase (RLS obligatorio).
+// No colocar contraseñas ni service_role en este archivo.
 window.SIMOLI_CONFIG = {
-  supabaseUrl: "",
-  supabasePublishableKey: ""
+  supabaseUrl: "https://nrntxvxvfoawllpdwwdq.supabase.co",
+  supabasePublishableKey: "sb_publishable_xToEgGnux0NDTTwuz-GtVw_A-brDHdR"
 };
