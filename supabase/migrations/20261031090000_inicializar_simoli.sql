@@ -1,16 +1,6 @@
--- SimOli | Primera migración: esquema, RLS y catálogo inicial
--- Idempotente respecto de las politicas del prototipo y las 65 presentaciones.
--- Nunca almacenar aquí claves privadas o contraseñas.
-
-drop policy if exists "each admin sees own admin record" on public.simoli_admins;
-drop policy if exists "public sees published products" on public.simoli_products;
-drop policy if exists "admin sees all products" on public.simoli_products;
-drop policy if exists "admin inserts products" on public.simoli_products;
-drop policy if exists "admin updates products" on public.simoli_products;
-drop policy if exists "admin deletes products" on public.simoli_products;
-drop policy if exists "simoli admin uploads photos" on storage.objects;
-drop policy if exists "simoli admin replaces photos" on storage.objects;
-drop policy if exists "simoli admin deletes photos" on storage.objects;
+-- SimOli | Esquema, políticas RLS y 65 productos iniciales.
+-- Las tablas se crean ANTES de evaluar políticas (apto para DB nueva).
+-- Las políticas se recrean si ya existían por un setup manual.
 
 -- SimOli: catálogo editable con acceso exclusivo de administradora.
 -- Aplicar desde el SQL Editor del proyecto Supabase NUEVO dedicado a SimOli.
@@ -41,6 +31,18 @@ grant select on public.simoli_admins to authenticated;
 revoke all on public.simoli_products from anon, authenticated;
 grant select on public.simoli_products to anon, authenticated;
 grant insert, update, delete on public.simoli_products to authenticated;
+
+-- Al repetir el setup, estas políticas se regeneran con la misma definición.
+drop policy if exists "each admin sees own admin record" on public.simoli_admins;
+drop policy if exists "public sees published products" on public.simoli_products;
+drop policy if exists "admin sees all products" on public.simoli_products;
+drop policy if exists "admin inserts products" on public.simoli_products;
+drop policy if exists "admin updates products" on public.simoli_products;
+drop policy if exists "admin deletes products" on public.simoli_products;
+drop policy if exists "simoli admin uploads photos" on storage.objects;
+drop policy if exists "simoli admin replaces photos" on storage.objects;
+drop policy if exists "simoli admin deletes photos" on storage.objects;
+
 create policy "each admin sees own admin record" on public.simoli_admins
   for select to authenticated using (user_id = (select auth.uid()));
 create or replace function private.simoli_is_admin()
@@ -80,7 +82,7 @@ create policy "simoli admin deletes photos" on storage.objects
 -- insert into public.simoli_admins(user_id) values ('TU-UUID-AQUI');
 -- IMPORTANTE: no habilitar registros públicos en Authentication.
 
--- Se cargan solo productos originales que aún no existan. No modifica altas previas.
+-- Semilla inicial de 65 presentaciones. ON CONFLICT DO NOTHING protege las altas existentes.
 -- Cargar UNA sola vez, tras ejecutar setup.sql. No pisa modificaciones existentes.
 -- Incluye los 65 códigos originales con estado de empaque y 5% ya aplicado cuando corresponde.
 -- Los productos sin precio o stock confirmado quedan ocultos hasta verificarlos desde el panel.
