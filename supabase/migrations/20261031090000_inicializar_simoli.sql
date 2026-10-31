@@ -1,0 +1,154 @@
+-- SimOli | Primera migración: esquema, RLS y catálogo inicial
+-- Idempotente respecto de las politicas del prototipo y las 65 presentaciones.
+-- Nunca almacenar aquí claves privadas o contraseñas.
+
+drop policy if exists "each admin sees own admin record" on public.simoli_admins;
+drop policy if exists "public sees published products" on public.simoli_products;
+drop policy if exists "admin sees all products" on public.simoli_products;
+drop policy if exists "admin inserts products" on public.simoli_products;
+drop policy if exists "admin updates products" on public.simoli_products;
+drop policy if exists "admin deletes products" on public.simoli_products;
+drop policy if exists "simoli admin uploads photos" on storage.objects;
+drop policy if exists "simoli admin replaces photos" on storage.objects;
+drop policy if exists "simoli admin deletes photos" on storage.objects;
+
+-- SimOli: catálogo editable con acceso exclusivo de administradora.
+-- Aplicar desde el SQL Editor del proyecto Supabase NUEVO dedicado a SimOli.
+create schema if not exists private;
+create table if not exists public.simoli_admins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create table if not exists public.simoli_products (
+  id text primary key check (length(id) between 3 and 80),
+  name text not null check(length(trim(name)) >= 2),
+  brand text not null default '',
+  category text not null default 'Papelería',
+  description text not null default '',
+  price numeric(12,2) check(price >= 0),
+  stock integer check(stock >= 0),
+  condition text not null default 'normal' check(condition in ('normal','detail','open')),
+  image_url text,
+  published boolean not null default false,
+  constraint simoli_publish_requires_price_and_stock check (not published or (price is not null and stock is not null)),
+  updated_at timestamptz not null default now()
+);
+create index if not exists simoli_products_published_idx on public.simoli_products(published);
+alter table public.simoli_admins enable row level security;
+alter table public.simoli_products enable row level security;
+revoke all on public.simoli_admins from anon, authenticated;
+grant select on public.simoli_admins to authenticated;
+revoke all on public.simoli_products from anon, authenticated;
+grant select on public.simoli_products to anon, authenticated;
+grant insert, update, delete on public.simoli_products to authenticated;
+create policy "each admin sees own admin record" on public.simoli_admins
+  for select to authenticated using (user_id = (select auth.uid()));
+create or replace function private.simoli_is_admin()
+returns boolean language sql stable security definer set search_path = ''
+as $$ select exists(select 1 from public.simoli_admins where user_id = (select auth.uid())); $$;
+revoke all on function private.simoli_is_admin() from public;
+grant usage on schema private to authenticated;
+grant execute on function private.simoli_is_admin() to authenticated;
+create policy "public sees published products" on public.simoli_products
+  for select to anon, authenticated using (published);
+create policy "admin sees all products" on public.simoli_products
+  for select to authenticated using ((select private.simoli_is_admin()));
+create policy "admin inserts products" on public.simoli_products
+  for insert to authenticated with check ((select private.simoli_is_admin()));
+create policy "admin updates products" on public.simoli_products
+  for update to authenticated using ((select private.simoli_is_admin()))
+  with check ((select private.simoli_is_admin()));
+create policy "admin deletes products" on public.simoli_products
+  for delete to authenticated using ((select private.simoli_is_admin()));
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('simoli-productos','simoli-productos',true,6291456,
+  array['image/jpeg','image/png','image/webp'])
+on conflict (id) do nothing;
+create policy "simoli admin uploads photos" on storage.objects
+ for insert to authenticated
+ with check (bucket_id='simoli-productos' and (select private.simoli_is_admin()));
+create policy "simoli admin replaces photos" on storage.objects
+ for update to authenticated
+ using (bucket_id='simoli-productos' and (select private.simoli_is_admin()))
+ with check (bucket_id='simoli-productos' and (select private.simoli_is_admin()));
+create policy "simoli admin deletes photos" on storage.objects
+ for delete to authenticated
+ using (bucket_id='simoli-productos' and (select private.simoli_is_admin()));
+
+-- Después de crear TU usuario en Authentication -> Users, registrar SU UUID:
+-- insert into public.simoli_admins(user_id) values ('TU-UUID-AQUI');
+-- IMPORTANTE: no habilitar registros públicos en Authentication.
+
+-- Se cargan solo productos originales que aún no existan. No modifica altas previas.
+-- Cargar UNA sola vez, tras ejecutar setup.sql. No pisa modificaciones existentes.
+-- Incluye los 65 códigos originales con estado de empaque y 5% ya aplicado cuando corresponde.
+-- Los productos sin precio o stock confirmado quedan ocultos hasta verificarlos desde el panel.
+insert into public.simoli_products(id,name,brand,category,price,stock,condition,published)
+values
+('SIM-LIB-001','Filgo Gel Pop Beach x12','Filgo','Lapiceras gel',10500,1,'normal',true),
+('SIM-LIB-002','Filgo Gel Pop Yo Mis Glitter x10 · estuche plástico','Filgo','Lapiceras gel',8900,1,'normal',true),
+('SIM-LIB-003','Filgo Gel Pop Flúo x6','Filgo','Lapiceras gel',4900,3,'normal',true),
+('SIM-LIB-004','Filgo Pinto Jumbo x6','Filgo','Fibras y marcadores',4200,1,'normal',true),
+('SIM-LIB-005','Filgo Gel Pop Explore x12','Filgo','Lapiceras gel',9500,3,'normal',true),
+('SIM-LIB-006','Maped Glitter Pastel x4','Maped','Resaltadores',12900,1,'normal',true),
+('SIM-LIB-007','Maped Color’Peps Window x6','Maped','Fibras y marcadores',11900,NULL ,'normal',false),
+('SIM-LIB-008','Pizzini Mío Maxi x6','Pizzini','Fibras y marcadores',5900,1,'normal',true),
+('SIM-LIB-009','Filgo Gel Pop Pastel x6','Filgo','Lapiceras gel',5100,2,'normal',true),
+('SIM-LIB-010','Filgo Pinto Jumbo Pastel x6','Filgo','Fibras y marcadores',4300,1,'normal',true),
+('SIM-LIB-010-D','Filgo Pinto Jumbo Pastel x6 · empaque con detalles','Filgo','Fibras y marcadores',4085,1,'detail',true),
+('SIM-LIB-011','Filgo Pinto Tizas Jumbo Pastel x5','Filgo','Tizas',3200,1,'normal',true),
+('SIM-LIB-012','Maped Color''Peps My First Jumbo x12','Maped','Fibras y marcadores',11900,2,'normal',true),
+('SIM-LIB-012-A','Maped Color''Peps My First Jumbo x12 · caja abierta, completa','Maped','Fibras y marcadores',11305,3,'open',true),
+('SIM-LIB-013-D','Maped Color''Peps Jungle x12 · empaque con detalles','Maped','Fibras y marcadores',6935,1,'detail',true),
+('SIM-LIB-014','Filgo Pinto Borrables x9 + 1 borrador','Filgo','Fibras y marcadores',5900,2,'normal',true),
+('SIM-LIB-015','Filgo Gel Pop Yo Mis Gel x10 · estuche plástico','Filgo','Lapiceras gel',8500,1,'normal',true),
+('SIM-LIB-016-D','Faber-Castell Fiesta x18 · empaque con detalles','Faber-Castell','Fibras y marcadores',8835,1,'detail',true),
+('SIM-LIB-017-D','Filgo Pinto 2220 x30 · empaque con detalles','Filgo','Fibras y marcadores',10925,3,'detail',true),
+('SIM-LIB-018','Filgo Pinto Jumbo x10','Filgo','Fibras y marcadores',6100,1,'normal',true),
+('SIM-LIB-019','Pizzini Mío Escolares x10','Pizzini','Fibras y marcadores',3700,1,'normal',true),
+('SIM-LIB-020','Maped Color''Peps Ocean x10','Maped','Fibras y marcadores',4900,3,'normal',true),
+('SIM-LIB-021','Maped Color''Peps Jungle x24','Maped','Fibras y marcadores',14500,1,'normal',true),
+('SIM-LIB-021-D','Maped Color''Peps Jungle x24 · empaque con detalles','Maped','Fibras y marcadores',13775,1,'detail',true),
+('SIM-LIB-022','Filgo Liner 0,38 microfibras x10','Filgo','Microfibras',6200,1,'normal',true),
+('SIM-LIB-022-D','Filgo Liner 0,38 microfibras x10 · empaque con detalles','Filgo','Microfibras',5890,1,'detail',true),
+('SIM-LIB-023','Filgo Pinto 2220 Flúo x6','Filgo','Fibras y marcadores',2900,1,'normal',true),
+('SIM-LIB-024-D','Filgo Gel Pop Glitter x10 · caja · empaque con detalles','Filgo','Lapiceras gel',9405,1,'detail',true),
+('SIM-LIB-025','Filgo Gel Pop Surtidos x10 · caja','Filgo','Lapiceras gel',9500,2,'normal',true),
+('SIM-LIB-026','Maped Color’Peps Duo Tip x10','Maped','Fibras y marcadores',11800,NULL ,'normal',false),
+('SIM-LIB-027','Maped Color’Peps Glitter (presentación por comprobar)','Maped','Fibras y marcadores',NULL,2 ,'normal',false),
+('SIM-LIB-028','Giotto Turbo Color x20','Giotto','Fibras y marcadores',7900,1,'normal',true),
+('SIM-LIB-029-D','Filgo Gel Pop Roller Gel x10 · variante a identificar · empaque con detalles','Filgo','Lapiceras gel',8455,1,'detail',true),
+('SIM-LIB-030','Mooving Fiesta de Pasteles x8','Mooving','Resaltadores',12900,3,'normal',true),
+('SIM-LIB-031','Filgo Lighter Fine Flúo x10','Filgo','Resaltadores',6300,2,'normal',true),
+('SIM-LIB-032','Mooving PWR Pastel x5','Mooving','Resaltadores',7200,6,'normal',true),
+('SIM-LIB-033','Mooving PWR Chic x5','Mooving','Resaltadores',7500,3,'normal',true),
+('SIM-LIB-034','Mooving PWR Neón x5','Mooving','Resaltadores',7200,4,'normal',true),
+('SIM-LIB-035','Trabi Texting Pastel x10','Trabi','Resaltadores',7900,2,'normal',true),
+('SIM-LIB-036','Filgo Text Marker Resalta Pastel x4','Filgo','Resaltadores',3900,2,'normal',true),
+('SIM-LIB-036-D','Filgo Text Marker Resalta Pastel x4 · empaque con detalles','Filgo','Resaltadores',3705,1,'detail',true),
+('SIM-LIB-037','Trabi High Texter Pastel x4','Trabi','Resaltadores',3400,2,'normal',true),
+('SIM-LIB-038-D','Trabi High Texter Flúo x4 · empaque con detalles','Trabi','Resaltadores',3325,1,'detail',true),
+('SIM-LIB-039','Trabi High Texter Pastel x8','Trabi','Resaltadores',7400,3,'normal',true),
+('SIM-LIB-039-D','Trabi High Texter Pastel x8 · empaque con detalles','Trabi','Resaltadores',7030,2,'detail',true),
+('SIM-LIB-040-D','Trabi High Texter Flúo x8 · empaque con detalles','Trabi','Resaltadores',7505,1,'detail',true),
+('SIM-LIB-041','Mooving In-finitos Colores microfibras x10','Mooving','Microfibras',11800,1,'normal',true),
+('SIM-LIB-041-D','Mooving In-finitos Colores microfibras x10 · empaque con detalles','Mooving','Microfibras',11210,1,'detail',true),
+('SIM-LIB-042','Mooving 100% Color, 100% Pasión x10','Mooving','Fibras y marcadores',6000,6,'normal',true),
+('SIM-LIB-043','Mooving Pincelados x10','Mooving','Artística',10200,1,'normal',true),
+('SIM-LIB-044','Filgo Text Marker Flúo x10','Filgo','Resaltadores',6100,2,'normal',true),
+('SIM-LIB-045','Mooving 100% Pastel, 100% Pasión x8','Mooving','Fibras y marcadores',5800,5,'normal',true),
+('SIM-LIB-046','Mooving Color + Pasión x20','Mooving','Fibras y marcadores',14200,5,'normal',true),
+('SIM-LIB-047','Trabi 450 Plus Pizarra x4','Trabi','Fibras y marcadores',7100,1,'normal',true),
+('SIM-LIB-048','Filgo Alloy Clásicos x12','Filgo','Artística',10500,4,'normal',true),
+('SIM-LIB-049','Filgo Alloy Fríos x12','Filgo','Artística',10500,1,'normal',true),
+('SIM-LIB-050','Filgo Alloy Pastel x12','Filgo','Artística',10500,1,'normal',true),
+('SIM-LIB-051','Filgo Alloy Cálidos x12','Filgo','Artística',10500,1,'normal',true),
+('SIM-LIB-052','Filgo Alloy Piel x12','Filgo','Artística',10500,1,'normal',true),
+('SIM-LIB-053','Filgo Alloy Botánicos x12','Filgo','Artística',10500,1,'normal',true),
+('SIM-LIB-054','Pizzini Urban Permanente x6 · Siempre Naturaleza','Pizzini','Fibras y marcadores',7900,1,'normal',true),
+('SIM-LIB-055','Filgo Lighter Fine Pastel x18','Filgo','Resaltadores',14500,3,'normal',true),
+('SIM-LIB-056','Filgo Text Marker Pastel x18','Filgo','Resaltadores',23500,1,'normal',true),
+('SIM-LIB-057','Olami marcadores doble punta MDP112 x12','Olami','Artística',7900,NULL ,'normal',false),
+('SIM-LIB-058','Maped Nightfall flúo x4','Maped','Resaltadores',NULL,NULL ,'normal',false)
+on conflict (id) do nothing;
